@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title or "SuribasA" }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <!-- Brand goes to absolute home URL -->
+    <a class="brand" href="http://127.0.0.1:5000/" title="Go to Home">SuriBasA</a>
+    <nav>
+      <!-- Classes link goes to absolute home URL -->
+      <a href="http://127.0.0.1:5001/">Home</a>
+      {% if cls %}
+        <a href="{{ url_for('class_edit', class_id=cls.id) }}">Edit Class</a>
+        <a href="{{ url_for('form1a', class_id=cls.id) }}" target="_blank">Form 1A (TPPK)</a>
+        <a href="{{ url_for('form1b', class_id=cls.id) }}" target="_blank">Form 1B (STCRR)</a>
+        <a href="{{ url_for('gst_en', class_id=cls.id) }}" target="_blank">GST Summary (English)</a>
+        <a href="{{ url_for('gst_fil', class_id=cls.id) }}" target="_blank">GST Summary (Filipino)</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash">
+          {% for cat,msg in messages %}<div class="tag {{cat}}">{{msg}}</div>{% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,111 @@
+/* Professional dark theme + print styles */
+:root{
+  --bg:#0b1320; --card:#0f172a; --text:#e2e8f0; --muted:#9aa3b2;
+  --border:#1f2a44; --brand:#3b82f6; --ok:#16a34a; --warn:#f59e0b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
+a{color:#9ecbff;text-decoration:none}
+.container{max-width:1700px;margin:24px auto;padding:0 16px}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02))}
+.brand{font-weight:800}
+nav a{margin-right:14px}
+h1,h2{margin:.3rem 0 1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,.35)}
+.card .title{font-weight:700;margin-bottom:6px}
+.actions{margin-top:10px}
+.btn{background:var(--brand);color:white;border:0;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(2,6,23,.5)}
+.btn.primary{background:#22c55e}
+.btn:hover{filter:brightness(1.07)}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:8px 0 18px}
+.formgrid input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:10px}
+.flash{margin:8px 0}
+.tag.ok{background:#12391e;color:#dcfce7;border:1px solid #14532d;padding:6px 10px;border-radius:8px;display:inline-block}
+.muted{color:var(--muted)}
+
+/* editor table */
+.tablewrap{overflow:auto;border:1px solid var(--border);border-radius:12px}
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table th,.table td{padding:8px;border-bottom:1px solid var(--border)}
+.table thead th{position:sticky;top:0;background:var(--card)}
+.table input,.table select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:8px;width:100%}
+.table .t{text-align:center}
+.ok{color:#86efac}
+.warn{color:#fde68a}
+.toolbar{display:flex;gap:10px;align-items:center;margin:10px 0}
+
+.printable{background:white;color:#111827;border-radius:12px;padding:16px}
+.center{text-align:center}
+.meta2{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 12px}
+.formtable{width:100%;border-collapse:collapse}
+.formtable th,.formtable td{border:1px solid #222;padding:6px}
+.formtable .c{text-align:center}
+.formtable .subhdr{background:#f1f5f9;font-weight:700}
+.printnote{margin-top:6px;color:#111}
+
+/* Print */
+@media print{
+  body{background:white}
+  .topbar, nav, .flash{display:none}
+  .container{max-width:100%;padding:0}
+  .printable{box-shadow:none;border:none;border-radius:0;color:#000}
+}
+
+
+/* --- Enhancements: wider numeric boxes for L/I/C --- */
+.table td.num, .table th.num { min-width: 96px; }
+.table input.num[type=number]{
+  width: 7ch;           /* enough for 2-digit values comfortably */
+  min-width: 76px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 10px;
+}
+/* remove spinners for clarity */
+.table input[type=number]::-webkit-outer-spin-button,
+.table input[type=number]::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
+.table input[type=number]{ -moz-appearance: textfield; }
+
+/* Slightly brighter input text and border for contrast */
+.table input, .table select{
+  color: #f8fafc;
+  border-color: #2a3a58;
+}
+
+/* Make totals bold and centered */
+.table td.t{ font-weight: 800; text-align: center; }
+
+
+/* --- Visibility fix for L/I/C numeric inputs --- */
+/* Remove spinners everywhere */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Ensure numbers are visible on dark background */
+.table input.num[type=number]{
+  background: #0d1b2a;        /* darker than table for contrast */
+  color: #ffffff !important;  /* force bright text */
+  border: 1px solid #2e436e;
+  height: 40px;               /* taller click target */
+  line-height: 40px;
+  min-width: 90px;            /* wider box */
+  width: 8ch;
+  text-align: center;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 0 10px;
+  border-radius: 10px;
+  caret-color: #ffffff;
+}
+.table input.num::placeholder{ color:#9aa3b2; opacity:.9; }
+.table td.num, .table th.num { min-width: 100px; }
+
+/* Focus ring for clarity */
+.table input.num:focus{
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}

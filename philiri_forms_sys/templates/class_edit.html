@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% set title = "Edit Class" %}
+{% block content %}
+
+<style>
+  /* --- Compact spreadsheet look --- */
+  .tablewrap{overflow:auto;border:1px solid var(--border);border-radius:10px}
+  table.table{width:100%;border-collapse:separate;border-spacing:0}
+  .table th,.table td{padding:6px 6px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
+  .table thead th{position:sticky;top:0;background:var(--card);z-index:1}
+  .t{text-align:center}
+  .muted small{opacity:.9}
+
+  /* skinny columns via colgroup */
+  col.cid{width:42px}
+  col.cname{min-width:180px}
+  col.cgender{width:92px}
+  col.ctoggle{width:86px}
+  col.cnum{width:70px}
+  col.ctotal{width:64px}
+  col.cdec{width:78px}
+  col.cstart{width:120px}
+  col.cact{width:64px}
+
+  /* compact inputs */
+  input[type=text], select{
+    background:var(--card);border:1px solid var(--border);color:#f8fafc;
+    padding:6px 8px;border-radius:8px;font-size:13px;height:30px
+  }
+  input.num[type=number]{
+    box-sizing:border-box;background:#0d1b2a;color:#fff;border:1px solid #2e436e;
+    height:30px;line-height:30px;width:4.5ch;min-width:44px;text-align:center;
+    font-weight:700;font-size:13px;padding:0 6px;border-radius:8px
+  }
+  /* allow 2-digit typing cleanly; remove spinners */
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none;margin:0 }
+  input[type=number]{ -moz-appearance:textfield; appearance:textfield }
+
+  .mini{background:transparent;border:1px solid var(--border);color:#cfe0ff;border-radius:8px;padding:4px 6px;cursor:pointer}
+  .mini:hover{filter:brightness(1.1)}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:.8rem}
+  .badge.lt{background:#3b2d06;color:#facc15;border:1px solid #a16207}
+  .badge.ge{background:#063b1e;color:#86efac;border:1px solid #166534}
+
+  .controls{display:flex;gap:6px;flex-wrap:wrap;margin:.25rem 0 .5rem}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:#cfe0ff}
+</style>
+
+<h1>Class Details</h1>
+<form action="{{ url_for('class_update_meta', class_id=cls.id) }}" method="post" class="formgrid">
+  <label>Teacher <input name="teacher" value="{{cls.teacher}}"></label>
+  <label>School <input name="school" value="{{cls.school}}"></label>
+
+  <!-- Grade dropdown 1–12 -->
+  <label>Grade
+    <select name="grade" required>
+      {% for n in range(1,13) %}
+        <option value="{{n}}" {% if cls.grade==n %}selected{% endif %}>{{n}}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Section <input name="section" value="{{cls.section}}"></label>
+
+  <!-- Screening Level (EN) dropdown -->
+  <label>Screening Level (EN)
+    <select name="screening_level_eng" required>
+      <option value="GST" {% if cls.screening_level_eng=='GST' %}selected{% endif %}>GST</option>
+      <option value="Pre-Test" {% if cls.screening_level_eng=='Pre-Test' %}selected{% endif %}>Pre-Test</option>
+      <option value="Post-Test" {% if cls.screening_level_eng=='Post-Test' %}selected{% endif %}>Post-Test</option>
+    </select>
+  </label>
+
+  <!-- Antas (FIL) dropdown -->
+  <label>Antas (FIL)
+    <select name="screening_level_fil" required>
+      <option value="GST" {% if cls.screening_level_fil=='GST' %}selected{% endif %}>GST</option>
+      <option value="Pre-Test" {% if cls.screening_level_fil=='Pre-Test' %}selected{% endif %}>Pre-Test</option>
+      <option value="Post-Test" {% if cls.screening_level_fil=='Post-Test' %}selected{% endif %}>Post-Test</option>
+    </select>
+  </label>
+
+  <label>Date <input name="date_text" value="{{cls.date_text}}"></label>
+  <button class="btn">Save</button>
+</form>
+
+<h2>Learners</h2>
+<p class="muted">
+  <small>Enter GST correct counts (L/I/C) for <b>English</b> and <b>Filipino</b>. Items = {{items_total}}.
+  TOTAL ≥ {{disc}} → <b>DISCONTINUE</b>; else start uses Grade−1 then (16–27 ⇒ one below, 0–15 ⇒ two below).</small>
+</p>
+
+<div class="controls">
+  <button class="btn ghost" id="toggleEN">Hide EN</button>
+  <button class="btn ghost" id="toggleFIL">Hide FIL</button>
+  <button class="btn" id="add1">+ Row</button>
+  <button class="btn" id="add10">+ 10 Rows</button>
+  <button class="btn primary" id="saveBtn">Save</button>
+</div>
+
+<div id="app"></div>
+
+<script>
+const classId     = {{cls.id}};
+const ITEMS_TOTAL = {{items_total}};
+const DISC        = {{disc}};
+const ONE_BELOW   = {{one_below}};
+const GRADE       = {{cls.grade}};
+
+const state = {
+  showEN: true,
+  showFIL: true,
+  rows: [
+    {% for s in learners %}{
+      name: {{s.name|tojson}},
+      gender: {{(s.gender or '')|tojson}},
+      took_eng: {{ 'true' if s.took_eng else 'false' }},
+      took_fil: {{ 'true' if s.took_fil else 'false' }},
+      eng_literal: {{s.eng_literal}},
+      eng_inferential: {{s.eng_inferential}},
+      eng_critical: {{s.eng_critical}},
+      fil_literal: {{s.fil_literal}},
+      fil_inferential: {{s.fil_inferential}},
+      fil_critical: {{s.fil_critical}},
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+};
+
+function clamp40(v){ v = parseInt(v||0,10); if(isNaN(v)) v=0; if(v<0) v=0; if(v>40) v=40; return v; }
+function computeTotal(a,b,c){ return (a|0)+(b|0)+(c|0); }
+function decisionBadge(total){ return total>=DISC ? `<span class="badge ge">≥28</span>` : `<span class="badge lt">&lt;28</span>`; }
+function startingPoint(grade,total){
+  if(total>=DISC) return "DISCONTINUE";
+  const base = Math.max(1,(grade|0)-1);
+  const start = (total>=ONE_BELOW) ? Math.max(1, base-1) : Math.max(1, base-2);
+  return "Grade "+start;
+}
+
+/* Update only the computed cells for a given row (no full re-render) */
+function updateComputed(i){
+  const r = state.rows[i];
+  const tEN = computeTotal(r.eng_literal, r.eng_inferential, r.eng_critical);
+  const tF  = computeTotal(r.fil_literal, r.fil_inferential, r.fil_critical);
+
+  const ten = document.getElementById(`ten-${i}`); if(ten) ten.textContent = tEN;
+  const den = document.getElementById(`den-${i}`); if(den) den.innerHTML = decisionBadge(tEN);
+  const sen = document.getElementById(`sen-${i}`); if(sen) sen.textContent = r.took_eng ? startingPoint(GRADE,tEN) : '—';
+
+  const tf  = document.getElementById(`tf-${i}`);  if(tf)  tf.textContent  = tF;
+  const df  = document.getElementById(`df-${i}`);  if(df)  df.innerHTML    = decisionBadge(tF);
+  const sf  = document.getElementById(`sf-${i}`);  if(sf)  sf.textContent  = r.took_fil ? startingPoint(GRADE,tF) : '—';
+}
+
+function numInput(el, i, key){
+  const v = clamp40(el.value);
+  state.rows[i][key] = v;
+  el.value = v;         // keep two-digit value visible
+  updateComputed(i);    // only recalc cells, do not rebuild table
+}
+
+function render(){
+  const el = document.getElementById('app');
+  const en = state.showEN ? "" : "style='display:none'";
+  const fl = state.showFIL? "" : "style='display:none'";
+
+  let html = `<div class="tablewrap"><table class="table">
+    <colgroup>
+      <col class="cid"><col class="cname"><col class="cgender">
+      <col class="ctoggle" ${en}><col class="cnum" ${en}><col class="cnum" ${en}><col class="cnum" ${en}><col class="ctotal" ${en}><col class="cdec" ${en}><col class="cstart" ${en}>
+      <col class="ctoggle" ${fl}><col class="cnum" ${fl}><col class="cnum" ${fl}><col class="cnum" ${fl}><col class="ctotal" ${fl}><col class="cdec" ${fl}><col class="cstart" ${fl}>
+      <col class="cact">
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="t">#</th><th>Name</th><th class="t">Gender</th>
+        <th class="t" ${en}>Test Taken English</th><th class="t" ${en}>L</th><th class="t" ${en}>I</th><th class="t" ${en}>C</th><th class="t" ${en}>Total</th><th class="t" ${en}>Score</th><th class="t" ${en}>Start Point of Passage</th>
+        <th class="t" ${fl}>Test Taken Filipino</th><th class="t" ${fl}>L</th><th class="t" ${fl}>I</th><th class="t" ${fl}>C</th><th class="t" ${fl}>Total</th><th class="t" ${fl}>Score</th><th class="t" ${fl}>Start Point of Passage</th>
+        <th class="t"></th>
+      </tr>
+    </thead><tbody>`;
+
+  state.rows.forEach((r,i)=>{
+    const tEN = computeTotal(r.eng_literal, r.eng_inferential, r.eng_critical);
+    const tF  = computeTotal(r.fil_literal, r.fil_inferential, r.fil_critical);
+
+    html += `<tr>
+      <td class="t">${i+1}</td>
+      <td><input type="text" placeholder="Student name" value="${r.name||''}" oninput="state.rows[${i}].name=this.value"></td>
+      <td class="t">
+        <select onchange="state.rows[${i}].gender=this.value">
+          <option value="M" ${r.gender==='M'?'selected':''}>M</option>
+          <option value="F" ${r.gender==='F'?'selected':''}>F</option>
+        </select>
+      </td>
+
+      <td class="t" ${en}><input type="checkbox" ${r.took_eng?'checked':''} onchange="state.rows[${i}].took_eng=this.checked; updateComputed(${i})"></td>
+      <td class="t" ${en}><input class="num" type="number" min="0" max="40" value="${r.eng_literal}" oninput="numInput(this, ${i}, 'eng_literal')"></td>
+      <td class="t" ${en}><input class="num" type="number" min="0" max="40" value="${r.eng_inferential}" oninput="numInput(this, ${i}, 'eng_inferential')"></td>
+      <td class="t" ${en}><input class="num" type="number" min="0" max="40" value="${r.eng_critical}" oninput="numInput(this, ${i}, 'eng_critical')"></td>
+      <td class="t" ${en} id="ten-${i}">${tEN}</td>
+      <td class="t" ${en} id="den-${i}">${decisionBadge(tEN)}</td>
+      <td class="t" ${en} id="sen-${i}">${r.took_eng ? startingPoint(GRADE,tEN) : "—"}</td>
+
+      <td class="t" ${fl}><input type="checkbox" ${r.took_fil?'checked':''} onchange="state.rows[${i}].took_fil=this.checked; updateComputed(${i})"></td>
+      <td class="t" ${fl}><input class="num" type="number" min="0" max="40" value="${r.fil_literal}" oninput="numInput(this, ${i}, 'fil_literal')"></td>
+      <td class="t" ${fl}><input class="num" type="number" min="0" max="40" value="${r.fil_inferential}" oninput="numInput(this, ${i}, 'fil_inferential')"></td>
+      <td class="t" ${fl}><input class="num" type="number" min="0" max="40" value="${r.fil_critical}" oninput="numInput(this, ${i}, 'fil_critical')"></td>
+      <td class="t" ${fl} id="tf-${i}">${tF}</td>
+      <td class="t" ${fl} id="df-${i}">${decisionBadge(tF)}</td>
+      <td class="t" ${fl} id="sf-${i}">${r.took_fil ? startingPoint(GRADE,tF) : "—"}</td>
+
+      <td class="t">
+        <button class="mini" title="Duplicate" onclick="dupRow(${i})">⎘</button>
+        <button class="mini" title="Delete" onclick="delRow(${i})">✕</button>
+      </td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  el.innerHTML = html;
+}
+
+function addRow(){
+  state.rows.push({name:"",gender:"M",took_eng:true,took_fil:true,
+    eng_literal:0,eng_inferential:0,eng_critical:0,
+    fil_literal:0,fil_inferential:0,fil_critical:0});
+  render();
+}
+function addRows(n){ for(let i=0;i<n;i++) addRow(); }
+function dupRow(i){
+  const r = JSON.parse(JSON.stringify(state.rows[i])); r.name = "";
+  state.rows.splice(i+1,0,r); render();
+}
+function delRow(i){ state.rows.splice(i,1); render(); }
+
+async function saveAll(){
+  const r = await fetch(`/api/class/${classId}/learners/save`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({rows: state.rows})
+  });
+  alert(r.ok ? 'Saved!' : 'Save failed.');
+}
+
+/* header controls */
+document.getElementById('toggleEN').onclick  = (e)=>{ e.preventDefault(); state.showEN = !state.showEN; render(); e.target.textContent = (state.showEN?'Hide':'Show')+' EN'; };
+document.getElementById('toggleFIL').onclick = (e)=>{ e.preventDefault(); state.showFIL = !state.showFIL; render(); e.target.textContent = (state.showFIL?'Hide':'Show')+' FIL'; };
+document.getElementById('add1').onclick      = (e)=>{ e.preventDefault(); addRow(); };
+document.getElementById('add10').onclick     = (e)=>{ e.preventDefault(); addRows(10); };
+document.getElementById('saveBtn').onclick   = (e)=>{ e.preventDefault(); saveAll(); };
+
+render();
+</script>
+
+{% endblock %}

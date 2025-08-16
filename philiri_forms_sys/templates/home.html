@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .hero{display:flex;align-items:center;justify-content:flex-start;margin:.25rem 0 1rem}
+
+  /* Button-like title chip */
+  .title-chip{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:10px 14px; border-radius:14px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border:1px solid var(--border); color:#eaf2ff; 
+    font-size:1.35rem; font-weight:800; letter-spacing:.2px;
+    box-shadow:0 6px 18px rgba(2,6,23,.35);
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, filter .15s ease;
+  }
+  .title-chip:hover{ transform:translateY(-1px); border-color:#2a3a58; box-shadow:0 10px 24px rgba(2,6,23,.5) }
+  .title-chip:active{ transform:translateY(0) }
+  .title-chip .icon{ width:22px; height:22px; display:inline-flex }
+
+  .create-card{margin-top:16px;padding:14px;border:1px solid var(--border);border-radius:14px;
+               background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+               box-shadow:0 6px 18px rgba(2,6,23,.35)}
+  .formgrid.compact{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin:10px 0 6px}
+  .formgrid.compact label{display:flex;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);
+                          border-radius:10px;padding:8px 10px;transition:border-color .18s ease,box-shadow .18s ease}
+  .formgrid.compact label:focus-within{border-color:#2a3a58;box-shadow:0 0 0 2px rgba(62,116,255,.18) inset}
+  .formgrid.compact label span{white-space:nowrap;font-size:.92rem;color:#cfe0ff;display:flex;align-items:center;gap:6px}
+  .formgrid.compact input,.formgrid.compact select{flex:1;min-width:0;background:transparent;border:none;color:#f8fafc;outline:none;padding:6px 4px;font-size:.95rem}
+  .formgrid.compact select option{color:#0f172a}
+  .btn-row{display:flex;gap:10px;align-items:center;margin-top:6px}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,.6);
+         backdrop-filter:saturate(120%) blur(2px);z-index:1300}
+  .modal.show{display:flex}
+  .modal-card{width:min(1000px,92vw);max-height:88vh;overflow:hidden;background:var(--card);
+              border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 40px rgba(2,6,23,.6);
+              display:flex;flex-direction:column}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
+  .modal-head h3{margin:0}
+  .modal-body{padding:12px}
+  .searchbar{display:flex;gap:8px;margin-bottom:10px}
+  .searchbar input{flex:1;height:36px;border-radius:10px;padding:6px 10px;background:#0d1b2a;color:#fff;border:1px solid #2e436e}
+  .cards-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .mini-card{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;text-decoration:none;
+             color:#e5edff;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+             border:1px solid var(--border);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+  .mini-card:hover{transform:translateY(-2px);border-color:#2a3a58;box-shadow:0 10px 24px rgba(2,6,23,.5)}
+  .mc-title{font-weight:800}
+  .mc-sub{color:var(--muted);font-size:.9rem}
+  .mc-open{margin-top:6px;font-weight:700}
+</style>
+
+<div class="hero">
+  <!-- H1 styled as a button inside the container -->
+  <button id="classesTrigger"
+          class="title-chip"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="classesModal"
+          title="Open classes list">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="14" rx="2" stroke="#9ecbff" stroke-width="2"/>
+      <path d="M7 8h10M7 12h6" stroke="#a7f3d0" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>View Classes</span>
+  </button>
+</div>
+
+<!-- No on-page cards; classes are shown in the modal -->
+
+<div id="create-form" class="create-card">
+  <h2 style="display:flex;align-items:center;gap:8px;margin:0 0 8px;">Create a class</h2>
+  <form action="{{ url_for('class_new') }}" method="post">
+    <div class="formgrid compact">
+      <label><span>Teacher</span><input name="teacher" required></label>
+      <label><span>School</span><input name="school" required></label>
+      <label><span>Grade</span>
+        <select name="grade" required>
+          <option value="" disabled selected></option>
+          {% for n in range(1,13) %}<option value="{{n}}">{{n}}</option>{% endfor %}
+        </select>
+      </label>
+      <label><span>Section</span><input name="section" required></label>
+      <label><span>Screening Level (EN)</span>
+        <select name="screening_level_eng" required>
+          <option value="" disabled selected></option>
+          <option value="GST">GST</option><option value="Pre-Test">Pre-Test</option><option value="Post-Test">Post-Test</option>
+        </select>
+      </label>
+      <label><span>Antas Pantatasa (FIL)</span>
+        <select name="screening_level_fil" required>
+          <option value="" disabled selected></option>
+          <option value="GST">GST</option><option value="Pre-Test">Pre-Test</option><option value="Post-Test">Post-Test</option>
+        </select>
+      </label>
+      <label><span>Date</span><input name="date_text" placeholder="YYYY-MM-DD"></label>
+    </div>
+    <div class="btn-row">
+      <button class="btn" type="submit">Create</button>
+      <button class="btn ghost" type="button" id="clearForm">Clear</button>
+    </div>
+  </form>
+</div>
+
+<!-- Classes Modal -->
+<div id="classesModal" class="modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="classesTitle">
+    <div class="modal-head">
+      <h3 id="classesTitle">Classes</h3>
+      <button id="closeClasses" class="btn ghost" style="padding:4px 10px;">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="searchbar">
+        <input id="classesSearch" type="text" placeholder="Search grade / section / school / teacher...">
+      </div>
+      <div id="classesGrid" class="cards-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Build modal from server data
+  const ITEMS = [
+    {% for c in classes %}
+    { title: {{ ("Grade %s – %s" % (c.grade, (c.section or "Section"))) | tojson }},
+      meta:  {{ ("%s • %s • %s" % ((c.teacher or "—"), (c.school or "—"), (c.date_text or "—"))) | tojson }},
+      href:  "{{ url_for('class_edit', class_id=c.id) }}" }
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  const modal   = document.getElementById('classesModal');
+  const closeBt = document.getElementById('closeClasses');
+  const gridEl  = document.getElementById('classesGrid');
+  const search  = document.getElementById('classesSearch');
+  const trigger = document.getElementById('classesTrigger');
+
+  function renderList(data){
+    gridEl.innerHTML = data.map(it => `
+      <a class="mini-card" href="${it.href}">
+        <div class="mc-title">${it.title}</div>
+        <div class="mc-sub">${it.meta}</div>
+        <div class="mc-open">Open →</div>
+      </a>
+    `).join('') || '<div class="muted" style="padding:12px;">No classes.</div>';
+  }
+  function openModal(){ renderList(ITEMS); modal.classList.add('show'); setTimeout(()=>search.focus(),50); }
+  function closeModal(){ modal.classList.remove('show'); }
+
+  trigger.addEventListener('click', openModal);
+  trigger.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openModal(); }});
+
+  closeBt.addEventListener('click', closeModal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&modal.classList.contains('show')) closeModal(); });
+
+  document.getElementById('clearForm')?.addEventListener('click', ()=> {
+    document.querySelector('#create-form form').reset();
+  });
+</script>
+
+{% endblock %}

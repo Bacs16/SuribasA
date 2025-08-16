@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  :root { --body-font: "Book Antiqua","Palatino Linotype","Palatino",serif; }
+
+  /* Restore original dark nav look */
+  html, body { margin:0; background:#0b1320; }
+  header, .navbar, .site-nav {
+    background:#0b1320 !important; box-shadow:none !important; border:0 !important;
+  }
+
+  /* Page container */
+  .word-wrap { padding: 18px 0 24px; }
+  .word-page {
+    width: 210mm; min-height: 297mm; margin: 0 auto;
+    background:#fff; color:#000; padding: 18mm 22mm;
+    box-shadow: 0 0 18px rgba(0,0,0,.45);
+    font-family: var(--body-font); font-size:10pt;
+  }
+  .word-page * { color:inherit; font-family:inherit; font-size:inherit; }
+
+  /* Title */
+  .report-title{ text-align:center; text-transform:uppercase; font-weight:800; margin:2mm 0 4mm; line-height:1.15; }
+  .report-title .l1{ font-size:14pt; }
+  .report-title .l2{ font-size:12pt; }
+
+  /* Meta grid (labels left, long underline values) – visual only for on-screen */
+  .meta-grid{ display:grid; grid-template-columns: 1fr 1fr; column-gap:16mm; row-gap:3mm; margin:4mm 0 6mm; }
+  .pair{ display:grid; grid-template-columns: 28mm 1fr; align-items:center; }
+  .pair b{ white-space:nowrap; }
+  .underline{ border-bottom:1px solid #000; min-height:15px; display:flex; align-items:center; padding:0 4px 1px; }
+
+  table.formtable{ width:100%; border-collapse:collapse; }
+  .formtable th, .formtable td{ border:1px solid #111; padding:4px 6px; }
+  .formtable th{ text-transform:uppercase; font-weight:700; }
+  .c{ text-align:center; }
+
+  .toolbar{ display:flex; justify-content:flex-end; gap:8px; margin:14px auto 8px; max-width:210mm; }
+  .btn{ background:#1f2937; color:#e5e7eb; border:1px solid #374151; padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .btn:hover{ background:#111827; }
+</style>
+
+<div class="toolbar">
+  <a id="exportWordBtn" class="btn" href="{{ url_for('export_gst_en_docx', class_id=cls.id) }}">Export to Word (.docx)</a>
+</div>
+
+<div class="word-wrap">
+  <div class="word-page">
+
+    <div class="report-title">
+      <div class="l1">ENGLISH GST RESULTS</div>
+      <div class="l2">STAGE 2 ADMISSION IN PHIL-IRI</div>
+    </div>
+
+    <div class="meta-grid">
+      <div class="pair"><b>Teacher:</b><div class="underline">{{ cls.teacher }}</div></div>
+      <div class="pair"><b>Grade:</b><div class="underline">{{ cls.grade }}</div></div>
+
+      <div class="pair"><b>School:</b><div class="underline">{{ cls.school }}</div></div>
+      <div class="pair"><b>Section:</b><div class="underline">{{ cls.section }}</div></div>
+
+      <div class="pair"><b>Type of Test:</b><div class="underline">Screening Test Level (English)</div></div>
+      <div class="pair"><b>Date:</b><div class="underline">{{ cls.date_text }}</div></div>
+    </div>
+
+    <div style="margin:1mm 0 4mm;">Learners who will undergo Phil-IRI Oral Reading in English (Stage 2)</div>
+
+    <table class="formtable">
+      <thead>
+        <tr>
+          <th style="width:48px;">#</th>
+          <th>Name</th>
+          <th style="width:90px;">Gender</th>
+          <th style="width:90px;">Score</th>
+          <th style="width:220px;">Start Level of Grade Passage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="c">{{ loop.index }}</td>
+            <td>{{ r.name }}</td>
+            <td class="c">{{ r.gender }}</td>
+            <td class="c">{{ r.score }}</td>
+            <td class="c">{{ r.start }}</td>
+          </tr>
+        {% endfor %}
+        {% if rows|length == 0 %}
+          <tr><td colspan="5" class="c">No learners (all ≥ 28).</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+  </div>
+</div>
+{% endblock %}
